@@ -1,0 +1,23 @@
+{
+  "name": "display-sync",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "elm-make src/App.elm --output dist/index.html"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bsalex/display-sync.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/bsalex/display-sync/issues"
+  },
+  "homepage": "https://github.com/bsalex/display-sync#readme",
+  "devDependencies": {
+    "postcss": "^5.1.0"
+  }
+}

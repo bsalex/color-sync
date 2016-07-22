@@ -1,1 +1,1 @@
-# color-sync
+# Display sync
