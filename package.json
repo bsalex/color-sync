@@ -19,5 +19,8 @@
   "homepage": "https://github.com/bsalex/display-sync#readme",
   "devDependencies": {
     "postcss": "^5.1.0"
+  },
+  "dependencies": {
+    "colorjoe": "^1.0.2"
   }
 }
