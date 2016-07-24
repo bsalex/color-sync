@@ -4,8 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "elm-make src/App.elm --output dist/index.html"
+    "build": "webpack",
+    "watch": "webpack --watch",
+    "dev": "webpack-dev-server --port 3000"
   },
   "repository": {
     "type": "git",
@@ -21,6 +22,14 @@
     "postcss": "^5.1.0"
   },
   "dependencies": {
-    "colorjoe": "^1.0.2"
+    "colorjoe": "^1.0.2",
+    "css-loader": "^0.23.1",
+    "elm-webpack-loader": "^3.0.3",
+    "file-loader": "^0.9.0",
+    "style-loader": "^0.13.1",
+    "url-loader": "^0.5.7",
+    "webpack": "^1.13.1",
+    "webpack-dev-middleware": "^1.6.1",
+    "webpack-dev-server": "^1.14.1"
   }
 }
