@@ -1,6 +1,6 @@
-module App exposing (..)
-import ColorSync
+port module App exposing (..)
 
+import ColorSync
 import Html exposing (Html, div)
 import Html.App
 
@@ -17,6 +17,7 @@ init =
 
 type Msg
   = ColorSyncMsg ColorSync.Msg
+  | ChangeColorFromPort (String)
 
 view : AppModel -> Html Msg
 view model =
@@ -25,6 +26,9 @@ view model =
 update : Msg -> AppModel -> ( AppModel, Cmd Msg )
 update message model =
     case message of
+        ChangeColorFromPort newColor ->
+            ( model, Cmd.none )
+
         ColorSyncMsg subMsg ->
             let
                 ( updatedColorSyncModel, colorSyncCmd ) =
@@ -32,9 +36,11 @@ update message model =
             in
                 ( { model | colorSyncModel = updatedColorSyncModel }, Cmd.map ColorSyncMsg colorSyncCmd )
 
+port changeColor : (String -> msg) -> Sub msg
+
 subscriptions : AppModel -> Sub Msg
 subscriptions model =
-    Sub.none
+    changeColor ChangeColorFromPort
 
 main : Program Never
 main =
