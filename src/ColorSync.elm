@@ -17,7 +17,7 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
   case msg of
     ChangeColor newColor ->
-      ( newColor, Cmd.none )
+      ( Debug.log "new color here" newColor, Cmd.none )
 
     Reset ->
       ( "#FFF", Cmd.none )
@@ -26,4 +26,7 @@ update msg model =
 view : Model -> Html Msg
 view model =
   div [class "color-sync", style [("background-color", model)]]
-    []
+    [
+      div [class "color-selector"]
+      []
+    ]

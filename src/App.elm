@@ -17,7 +17,7 @@ init =
 
 type Msg
   = ColorSyncMsg ColorSync.Msg
-  | ChangeColorFromPort (String)
+  | ChangeColorFromPort (ColorSync.Model)
 
 view : AppModel -> Html Msg
 view model =
@@ -27,7 +27,11 @@ update : Msg -> AppModel -> ( AppModel, Cmd Msg )
 update message model =
     case message of
         ChangeColorFromPort newColor ->
-            ( model, Cmd.none )
+            let
+                ( updatedColorSyncModel, colorSyncCmd ) =
+                    ColorSync.update (ColorSync.ChangeColor newColor) newColor
+            in
+                ( { model | colorSyncModel = updatedColorSyncModel }, Cmd.map ColorSyncMsg colorSyncCmd )
 
         ColorSyncMsg subMsg ->
             let
@@ -36,7 +40,7 @@ update message model =
             in
                 ( { model | colorSyncModel = updatedColorSyncModel }, Cmd.map ColorSyncMsg colorSyncCmd )
 
-port changeColor : (String -> msg) -> Sub msg
+port changeColor : (ColorSync.Model -> msg) -> Sub msg
 
 subscriptions : AppModel -> Sub Msg
 subscriptions model =
