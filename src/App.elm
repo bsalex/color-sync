@@ -27,11 +27,7 @@ update : Msg -> AppModel -> ( AppModel, Cmd Msg )
 update message model =
     case message of
         ChangeColorFromPort newColor ->
-            let
-                ( updatedColorSyncModel, colorSyncCmd ) =
-                    ColorSync.update (ColorSync.ChangeColor newColor) newColor
-            in
-                ( { model | colorSyncModel = updatedColorSyncModel }, Cmd.map ColorSyncMsg colorSyncCmd )
+            update (ColorSyncMsg (ColorSync.ChangeColor newColor)) model
 
         ColorSyncMsg subMsg ->
             let

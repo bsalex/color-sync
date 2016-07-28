@@ -1,4 +1,10 @@
+* {
+  margin: 0;
+  padding: 0;
+}
+
 .color-sync {
+  position: fixed;
   width: 100%;
   height: 100%;
 }
