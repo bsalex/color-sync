@@ -19,6 +19,10 @@
   "bugs": {
     "url": "https://github.com/bsalex/display-sync/issues"
   },
+  "engines": {
+    "node": "6.3.1",
+    "npm": "3.10.6"
+  },
   "homepage": "https://github.com/bsalex/display-sync#readme",
   "devDependencies": {
     "elm": "^0.17.1",
