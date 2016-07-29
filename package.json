@@ -7,7 +7,8 @@
     "build": "webpack",
     "watch": "webpack --watch",
     "dev": "webpack-dev-server --port 3000",
-    "heroku-postbuild": "elm package install -y && npm run build"
+    "elm-install": "elm package install -y",
+    "heroku-postbuild": "npm run elm-install && npm run build"
   },
   "repository": {
     "type": "git",
