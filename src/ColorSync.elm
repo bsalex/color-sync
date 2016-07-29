@@ -20,7 +20,7 @@ update msg model =
       ( Debug.log "new color here" newColor, Cmd.none )
 
     Reset ->
-      ( "#FFF", Cmd.none )
+      ( initialModel, Cmd.none )
 
 
 view : Model -> Html Msg
