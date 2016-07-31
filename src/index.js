@@ -11,5 +11,6 @@ var mountNode = document.getElementById('app');
 // The third value on embed are the initial values for incomming ports into Elm
 var app = Elm.App.embed(mountNode);
 
+require('./ports/WebRtc.js');
 var colorPickerPort = require('./ports/ColorPicker.js');
 colorPickerPort.init(app);

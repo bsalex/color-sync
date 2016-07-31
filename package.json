@@ -38,6 +38,7 @@
   },
   "dependencies": {
     "colorjoe": "^1.0.2",
-    "express": "^4.14.0"
+    "express": "^4.14.0",
+    "webrtc-adapter": "^1.4.0"
   }
 }
