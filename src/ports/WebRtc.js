@@ -1,55 +1,21 @@
-var config = {
-    apiKey: "AIzaSyCstSg_t2c5WsdkmcWWvBmjO3TiaqNVWcI",
-    authDomain: "display-sync.firebaseapp.com",
-    databaseURL: "https://display-sync.firebaseio.com",
-    storageBucket: "",
-  };
-firebase.initializeApp(config);
+var configs = require('../configs');
+
+firebase.initializeApp(configs.firebaseConfig);
 var database = firebase.database();
 
 var connectionOptions = {
-    iceServers: [{
-        url: 'stun:stun01.sipphone.com'
-    }, {
-        url: 'stun:stun.ekiga.net'
-    }, {
-        url: 'stun:stun.fwdnet.net'
-    }, {
-        url: 'stun:stun.ideasip.com'
-    }, {
-        url: 'stun:stun.iptel.org'
-    }, {
-        url: 'stun:stun.rixtelecom.se'
-    }, {
-        url: 'stun:stun.schlund.de'
-    }, {
-        url: 'stun:stun.l.google.com:19302'
-    }, {
-        url: 'stun:stun1.l.google.com:19302'
-    }, {
-        url: 'stun:stun2.l.google.com:19302'
-    }, {
-        url: 'stun:stun3.l.google.com:19302'
-    }, {
-        url: 'stun:stun4.l.google.com:19302'
-    }, {
-        url: 'stun:stunserver.org'
-    }, {
-        url: 'stun:stun.softjoys.com'
-    }, {
-        url: 'stun:stun.voiparound.com'
-    }, {
-        url: 'stun:stun.voipbuster.com'
-    }, {
-        url: 'stun:stun.voipstunt.com'
-    }, {
-        url: 'stun:stun.voxgratia.org'
-    }, {
-        url: 'stun:stun.xten.com'
-    }]
+    iceServers: configs.iceServers
 };
 
-function startHost() {
+function startHost(hostDataKey) {
+    database.ref().on('child_added', function(snapshot) {
+        if (snapshot.key === hostDataKey.toString()) {
+            connectHost(hostDataKey, database);
+        }
+    });
+}
+
+function connectHost(hostDataKey, database) {
     var pc = new webkitRTCPeerConnection(connectionOptions);
 
     pc.ondatachannel = function(event) {
@@ -60,36 +26,28 @@ function startHost() {
         };
     };
 
-    // send any ice candidates to the other peer
     pc.onicecandidate = function(event) {
         if (event.candidate) {
             console.log('onicecandidate');
-            localStorage.setItem('hostIceCandidate', JSON.stringify(event.candidate));
+            database.ref(hostDataKey).update({
+                candidate: event.candidate
+            });
             pc.onicecandidate = null;
         }
     };
 
-    var sendChannel = pc.createDataChannel("sendDataChannel", {
-        reliable: false
-    });
+    var sendChannel = pc.createDataChannel('sendDataChannel');
 
     sendChannel.onopen = function(event) {
         console.log('channel opened');
     }
 
-    sendChannel.onmessage = function(event) {
-        console.log('channel got a message');
-    }
-
-    sendChannel.onclose = function(event) {
-        console.log(event);
-        console.log('channel has been closed');
-    }
-
     global.sendChannel = sendChannel;
 
     pc.createOffer().then(function(offer) {
-        localStorage.setItem('offer', JSON.stringify(offer));
+        database.ref(hostDataKey).update({
+            offer: offer
+        });
         return offer;
     }).then(
         function(offer) {
@@ -97,58 +55,57 @@ function startHost() {
         }
     );
 
-    window.addEventListener('storage', function(event) {
-        if (event.key === 'answer') {
-            pc.setRemoteDescription(
-                JSON.parse(localStorage.getItem('answer'))).then(function() {
+    database.ref(hostDataKey + '/answer').on('value', function(snapshot) {
+        var answer = snapshot.val();
+
+        if (answer) {
+            console.log('got answer', answer);
+            pc.setRemoteDescription(answer).then(function() {
                 console.log('answer received');
             });
         }
-
-        /*if (event.key === 'clientIceCandidate') {
-            pc.addIceCandidate(
-                JSON.parse(localStorage.getItem('clientIceCandidate'))).then(function() {
-                console.log('Ice candidate on host has been added');
-            });
-        }*/
-    }, false);
+    });
 }
 
 global.startHost = startHost;
 
-function startClient() {
-    var pc = new webkitRTCPeerConnection(connectionOptions);
+function startClient(hostDataKey) {
 
-    pc.ondatachannel = function(event) {
-        console.log('on data channel');
-        receiveChannel = event.channel;
-        receiveChannel.onmessage = function(event) {
-            console.log(event.data);
-        };
-    };
+    database.ref(hostDataKey).set({
+        key: hostDataKey
+    });
 
-    // send any ice candidates to the other peer
-    pc.onicecandidate = function(event) {
-        if (event.candidate) {
-            console.log('onicecandidate');
-            localStorage.setItem('clientIceCandidate', JSON.stringify(event.candidate));
-            pc.onicecandidate = null;
+    database.ref(hostDataKey + '/offer').on('value', function(snapshot) {
+        var offer = snapshot.val();
+
+        if (offer) {
+            var pc = new webkitRTCPeerConnection(connectionOptions);
+
+            pc.ondatachannel = function(event) {
+                console.log('on data channel');
+                receiveChannel = event.channel;
+                receiveChannel.onmessage = function(event) {
+                    console.log(event.data);
+                };
+            };
+
+            pc.setRemoteDescription(offer)
+            .then(pc.createAnswer.bind(pc))
+            .then(function(answer) {
+                database.ref(hostDataKey).update({
+                    answer: answer
+                });
+                return answer;
+            }).then(pc.setLocalDescription.bind(pc))
+            .then(function() {
+                database.ref(hostDataKey + '/candidate').on('value', function(snapshot) {
+                    var candidate = snapshot.val();
+                    if (candidate) {
+                        pc.addIceCandidate(candidate);
+                    }
+                });
+            });
         }
-    };
-
-    pc.setRemoteDescription(JSON.parse(localStorage.getItem('offer'))).then(function() {
-        console.log('client remove desc set');
-        return pc.createAnswer();
-    }).then(function(answer) {
-        console.log('client local desc stored');
-        localStorage.setItem('answer', JSON.stringify(answer));
-        return answer;
-    }).then(function(answer) {
-        console.log('client local desc set');
-        return pc.setLocalDescription(answer);
-    }).then(function() {
-        console.log('client ICE candidat added');
-        pc.addIceCandidate(JSON.parse(localStorage.getItem('hostIceCandidate')));
     });
 }
 
