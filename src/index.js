@@ -14,3 +14,5 @@ var app = Elm.App.embed(mountNode);
 require('./ports/WebRtc.js');
 var colorPickerPort = require('./ports/ColorPicker.js');
 colorPickerPort.init(app);
+var webRtc = require('./ports/WebRtc.js');
+webRtc.init(app);

@@ -69,7 +69,7 @@ function connectHost(hostDataKey, database) {
 
 global.startHost = startHost;
 
-function startClient(hostDataKey) {
+function startClient(hostDataKey, onMessage) {
 
     database.ref(hostDataKey).set({
         key: hostDataKey
@@ -86,27 +86,42 @@ function startClient(hostDataKey) {
                 receiveChannel = event.channel;
                 receiveChannel.onmessage = function(event) {
                     console.log(event.data);
+                    onMessage(event.data);
                 };
             };
 
             pc.setRemoteDescription(offer)
-            .then(pc.createAnswer.bind(pc))
-            .then(function(answer) {
-                database.ref(hostDataKey).update({
-                    answer: answer
+                .then(pc.createAnswer.bind(pc))
+                .then(function(answer) {
+                    database.ref(hostDataKey).update({
+                        answer: answer
+                    });
+                    return answer;
+                })
+                .then(pc.setLocalDescription.bind(pc))
+                .then(function() {
+                    database.ref(hostDataKey + '/candidate').on('value', function(snapshot) {
+                        var candidate = snapshot.val();
+                        if (candidate) {
+                            pc.addIceCandidate(candidate);
+                        }
+                    });
                 });
-                return answer;
-            }).then(pc.setLocalDescription.bind(pc))
-            .then(function() {
-                database.ref(hostDataKey + '/candidate').on('value', function(snapshot) {
-                    var candidate = snapshot.val();
-                    if (candidate) {
-                        pc.addIceCandidate(candidate);
-                    }
-                });
-            });
         }
     });
 }
 
 global.startClient = startClient;
+
+module.exports = {
+    init: function(app) {
+        app.ports.sessionId.subscribe(function(session) {
+            console.log("Hello from here " + session[0] + session[1]);
+            if (session[1]) {
+                startHost(session[0]);
+            } else {
+                startClient(session[0], app.ports.changeColor.send);
+            }
+        });
+    }
+};
