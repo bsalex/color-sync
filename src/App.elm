@@ -49,7 +49,7 @@ init result =
 
 type Msg
     = ColorSyncMsg ColorSync.Msg
-    | ChangeColorFromPort (ColorSync.Model)
+    | ChangeColorFromPort ColorSync.Model
     | GenerateSessionId Int
 
 
@@ -81,11 +81,16 @@ update message model =
             update (ColorSyncMsg (ColorSync.ChangeColor newColor)) model
 
         ColorSyncMsg subMsg ->
-            let
-                ( updatedColorSyncModel, colorSyncCmd ) =
-                    ColorSync.update subMsg model.colorSyncModel
-            in
-                ( { model | colorSyncModel = updatedColorSyncModel }, Cmd.map ColorSyncMsg colorSyncCmd )
+            case subMsg of
+                ColorSync.ChangedColor newColor ->
+                    ( model, changedColor newColor )
+
+                _ ->
+                    let
+                        ( updatedColorSyncModel, colorSyncCmd ) =
+                            ColorSync.update subMsg model.colorSyncModel
+                    in
+                        ( { model | colorSyncModel = updatedColorSyncModel }, Cmd.map ColorSyncMsg colorSyncCmd )
 
 
 urlUpdate : Result String Route -> AppModel -> ( AppModel, Cmd Msg )
@@ -98,6 +103,9 @@ urlUpdate result model =
 
 
 port changeColor : (ColorSync.Model -> msg) -> Sub msg
+
+
+port changedColor : ColorSync.Model -> Cmd msg
 
 
 port sessionId : ( String, Bool ) -> Cmd msg
