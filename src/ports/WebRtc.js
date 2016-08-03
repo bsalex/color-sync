@@ -30,7 +30,7 @@ function connectHost(hostDataKey, database) {
         if (event.candidate) {
             console.log('onicecandidate');
             database.ref(hostDataKey).update({
-                candidate: event.candidate
+                hostIceCandidate: event.candidate
             });
             pc.onicecandidate = null;
         }
@@ -62,6 +62,13 @@ function connectHost(hostDataKey, database) {
             console.log('got answer', answer);
             pc.setRemoteDescription(answer).then(function() {
                 console.log('answer received');
+            }).then(function() {
+                database.ref(hostDataKey + '/clientIceCandidate').on('value', function(snapshot) {
+                    var candidate = snapshot.val();
+                    if (candidate) {
+                        pc.addIceCandidate(candidate);
+                    }
+                });
             });
         }
     });
@@ -90,6 +97,16 @@ function startClient(hostDataKey, onMessage) {
                 };
             };
 
+            pc.onicecandidate = function(event) {
+                if (event.candidate) {
+                    console.log('onicecandidate');
+                    database.ref(hostDataKey).update({
+                        clientIceCandidate: event.candidate
+                    });
+                    pc.onicecandidate = null;
+                }
+            };
+
             pc.setRemoteDescription(offer)
                 .then(pc.createAnswer.bind(pc))
                 .then(function(answer) {
@@ -100,7 +117,7 @@ function startClient(hostDataKey, onMessage) {
                 })
                 .then(pc.setLocalDescription.bind(pc))
                 .then(function() {
-                    database.ref(hostDataKey + '/candidate').on('value', function(snapshot) {
+                    database.ref(hostDataKey + '/hostIceCandidate').on('value', function(snapshot) {
                         var candidate = snapshot.val();
                         if (candidate) {
                             pc.addIceCandidate(candidate);
