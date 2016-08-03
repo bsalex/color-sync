@@ -4,6 +4,7 @@ import String
 import Navigation
 import UrlParser exposing (..)
 
+
 type Route
     = MainRoute
     | SessionRoute String
