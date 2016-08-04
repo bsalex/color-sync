@@ -37,7 +37,7 @@ init : Result String Route -> ( AppModel, Cmd Msg )
 init result =
     let
         currentSessionId =
-            getSessionIdFromRoute (Routing.routeFromResult (Debug.log "result" result))
+            getSessionIdFromRoute (Routing.routeFromResult (Debug.log "routed session" result))
     in
         ( initialModel
         , if currentSessionId == "" then
@@ -57,7 +57,7 @@ getSessionQrCodeUrl : String -> String
 getSessionQrCodeUrl sessionId =
     (String.concat
         [ "http://chart.apis.google.com/chart?chs=200x200&cht=qr&chld=|1&chl="
-        , "https%3A%2F%2Fdisplay-sync.herokuapp.com%2F%23s%2F"
+        , "https%3A%2F%2Fdisplay-sync.herokuapp.com%2F"
         , sessionId
         ]
     )

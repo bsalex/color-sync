@@ -13,14 +13,18 @@ type Route
 matchers : Parser (Route -> a) a
 matchers =
     oneOf
-        [ format SessionRoute (s "s" </> string) ]
+        [ format SessionRoute (string) ]
 
 
 hashParser : Navigation.Location -> Result String Route
 hashParser location =
-    location.hash
+    location.href
         |> Debug.log "hash"
-        |> String.dropLeft 1
+        |> String.split "/"
+        |> List.reverse
+        |> List.head
+        |> Maybe.withDefault ""
+        |> Debug.log "session from url"
         |> parse identity matchers
 
 

@@ -8,16 +8,31 @@ var connectionOptions = {
 };
 
 function startHost(hostDataKey) {
-    return new Promise(function (resolve) {
-        database.ref().on('child_added', function(snapshot) {
-            if (snapshot.key === hostDataKey.toString()) {
-                connectHost(hostDataKey, database).then(resolve);
-            }
-        });
+    var channels = [];
+
+    database.ref().on('child_added', function(snapshot) {
+        if (snapshot.key === hostDataKey.toString()) {
+            database.ref(hostDataKey).on('child_added', function(snapshot) {
+                var clientId = snapshot.key;
+                console.log(clientId);
+
+                connectHost(hostDataKey, clientId, database).then(function (channel) {
+                    channels.push(channel);
+                });
+            });
+        }
     });
+
+    return function (color) {
+        channels.forEach(function (channel) {
+            channel.send(color);
+        });
+    }
 }
 
-function connectHost(hostDataKey, database) {
+function connectHost(hostDataKey, clientId, database) {
+    var clientDataKey = hostDataKey + '/' + clientId;
+
     return new Promise(function (resolve) {
         var pc = new webkitRTCPeerConnection(connectionOptions);
 
@@ -32,7 +47,7 @@ function connectHost(hostDataKey, database) {
         pc.onicecandidate = function(event) {
             if (event.candidate) {
                 console.log('onicecandidate');
-                database.ref(hostDataKey).update({
+                database.ref(clientDataKey).update({
                     hostIceCandidate: event.candidate
                 });
                 pc.onicecandidate = null;
@@ -49,7 +64,7 @@ function connectHost(hostDataKey, database) {
         global.sendChannel = sendChannel;
 
         pc.createOffer().then(function(offer) {
-            database.ref(hostDataKey).update({
+            database.ref(clientDataKey).update({
                 offer: offer
             });
             return offer;
@@ -59,7 +74,7 @@ function connectHost(hostDataKey, database) {
             }
         );
 
-        database.ref(hostDataKey + '/answer').on('value', function(snapshot) {
+        database.ref(clientDataKey + '/answer').on('value', function(snapshot) {
             var answer = snapshot.val();
 
             if (answer) {
@@ -67,7 +82,7 @@ function connectHost(hostDataKey, database) {
                 pc.setRemoteDescription(answer).then(function() {
                     console.log('answer received');
                 }).then(function() {
-                    database.ref(hostDataKey + '/clientIceCandidate').on('value', function(snapshot) {
+                    database.ref(clientDataKey + '/clientIceCandidate').on('value', function(snapshot) {
                         var candidate = snapshot.val();
                         if (candidate) {
                             pc.addIceCandidate(candidate);
@@ -81,13 +96,14 @@ function connectHost(hostDataKey, database) {
 
 global.startHost = startHost;
 
-function startClient(hostDataKey, onMessage) {
+function startClient(hostDataKey, clientId, onMessage) {
+    var clientDataKey = hostDataKey + '/' + clientId;
 
-    database.ref(hostDataKey).set({
-        key: hostDataKey
+    database.ref(clientDataKey).set({
+        key: clientId
     });
 
-    database.ref(hostDataKey + '/offer').on('value', function(snapshot) {
+    database.ref(clientDataKey + '/offer').on('value', function(snapshot) {
         var offer = snapshot.val();
 
         if (offer) {
@@ -105,7 +121,7 @@ function startClient(hostDataKey, onMessage) {
             pc.onicecandidate = function(event) {
                 if (event.candidate) {
                     console.log('onicecandidate');
-                    database.ref(hostDataKey).update({
+                    database.ref(clientDataKey).update({
                         clientIceCandidate: event.candidate
                     });
                     pc.onicecandidate = null;
@@ -115,14 +131,14 @@ function startClient(hostDataKey, onMessage) {
             pc.setRemoteDescription(offer)
                 .then(pc.createAnswer.bind(pc))
                 .then(function(answer) {
-                    database.ref(hostDataKey).update({
+                    database.ref(clientDataKey).update({
                         answer: answer
                     });
                     return answer;
                 })
                 .then(pc.setLocalDescription.bind(pc))
                 .then(function() {
-                    database.ref(hostDataKey + '/hostIceCandidate').on('value', function(snapshot) {
+                    database.ref(clientDataKey + '/hostIceCandidate').on('value', function(snapshot) {
                         var candidate = snapshot.val();
                         if (candidate) {
                             pc.addIceCandidate(candidate);
@@ -139,11 +155,11 @@ module.exports = {
     init: function(app) {
         app.ports.sessionId.subscribe(function(session) {
             if (session[1]) {
-                startHost(session[0]).then(function (channel) {
-                    app.ports.changedColor.subscribe(channel.send.bind(channel));
-                });
+                app.ports.changedColor.subscribe(startHost(session[0]));
             } else {
-                startClient(session[0], app.ports.changeColor.send);
+                var clientId = Math.round(Math.random() * 10000);
+                console.log('Client id: ' + clientId);
+                startClient(session[0], clientId, app.ports.changeColor.send);
             }
         });
     }

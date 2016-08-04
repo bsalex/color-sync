@@ -23,7 +23,7 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         ChangeColor newColor ->
-            ( Debug.log "new color here" newColor, Task.perform (\_ -> Debug.crash "This failure cannot happen.") identity (Task.succeed (ChangedColor newColor)) )
+            ( newColor, Task.perform (\_ -> Debug.crash "This failure cannot happen.") identity (Task.succeed (ChangedColor newColor)) )
 
         Reset ->
             ( initialModel, Cmd.none )
