@@ -7,6 +7,10 @@ var connectionOptions = {
     iceServers: configs.iceServers
 };
 
+function generateUUID() {
+    return Math.round(Math.random() * 10000);
+}
+
 function startHost(hostDataKey) {
     var channels = [];
 
@@ -47,10 +51,11 @@ function connectHost(hostDataKey, clientId, database) {
         pc.onicecandidate = function(event) {
             if (event.candidate) {
                 console.log('onicecandidate');
-                database.ref(clientDataKey).update({
-                    hostIceCandidate: event.candidate
-                });
-                pc.onicecandidate = null;
+
+                var newIceCandidate = {};
+                newIceCandidate[generateUUID()] = event.candidate;
+
+                database.ref(clientDataKey + '/hostIceCandidates').update(newIceCandidate);
             }
         };
 
@@ -82,8 +87,9 @@ function connectHost(hostDataKey, clientId, database) {
                 pc.setRemoteDescription(answer).then(function() {
                     console.log('answer received');
                 }).then(function() {
-                    database.ref(clientDataKey + '/clientIceCandidate').on('value', function(snapshot) {
+                    database.ref(clientDataKey + '/clientIceCandidates').on('child_added', function(snapshot) {
                         var candidate = snapshot.val();
+                        console.log('Host candidate added ', candidate);
                         if (candidate) {
                             pc.addIceCandidate(candidate);
                         }
@@ -121,10 +127,10 @@ function startClient(hostDataKey, clientId, onMessage) {
             pc.onicecandidate = function(event) {
                 if (event.candidate) {
                     console.log('onicecandidate');
-                    database.ref(clientDataKey).update({
-                        clientIceCandidate: event.candidate
-                    });
-                    pc.onicecandidate = null;
+                    var newIceCandidate = {};
+                    newIceCandidate[generateUUID()] = event.candidate;
+
+                    database.ref(clientDataKey + '/clientIceCandidates').update(newIceCandidate);
                 }
             };
 
@@ -138,8 +144,10 @@ function startClient(hostDataKey, clientId, onMessage) {
                 })
                 .then(pc.setLocalDescription.bind(pc))
                 .then(function() {
-                    database.ref(clientDataKey + '/hostIceCandidate').on('value', function(snapshot) {
+                    database.ref(clientDataKey + '/hostIceCandidates').on('child_added', function(snapshot) {
                         var candidate = snapshot.val();
+                        console.log('Client candidate added ', candidate, snapshot.val(), snapshot.key);
+
                         if (candidate) {
                             pc.addIceCandidate(candidate);
                         }
@@ -157,7 +165,7 @@ module.exports = {
             if (session[1]) {
                 app.ports.changedColor.subscribe(startHost(session[0]));
             } else {
-                var clientId = Math.round(Math.random() * 10000);
+                var clientId = generateUUID();
                 console.log('Client id: ' + clientId);
                 startClient(session[0], clientId, app.ports.changeColor.send);
             }
