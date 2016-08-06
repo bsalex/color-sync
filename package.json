@@ -39,6 +39,7 @@
   "dependencies": {
     "colorjoe": "^1.0.2",
     "express": "^4.14.0",
+    "express-history-api-fallback": "^2.0.0",
     "uuid": "^2.0.2",
     "webrtc-adapter": "^1.4.0"
   }
