@@ -37,6 +37,7 @@ getSessionIdFromRoute route =
         Routing.NotFound ->
             ""
 
+
 getHostFromRoute : Route -> String
 getHostFromRoute route =
     case route of
@@ -55,6 +56,7 @@ init result =
     let
         currentSessionId =
             getSessionIdFromRoute (Routing.routeFromResult (Debug.log "routed session" result))
+
         currentHost =
             getHostFromRoute (Routing.routeFromResult (Debug.log "routed session" result))
     in
@@ -82,6 +84,7 @@ getSessionQrCodeUrl host sessionId =
         , sessionId
         ]
     )
+
 
 getSessionConnectUrl : String -> String -> String
 getSessionConnectUrl host sessionId =

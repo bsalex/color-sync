@@ -4,6 +4,7 @@ import Html exposing (Html, div)
 import Html.Attributes exposing (class, style)
 import Task
 
+
 type alias Model =
     String
 
@@ -30,6 +31,7 @@ update msg model =
 
         ChangedColor newColor ->
             ( model, Cmd.none )
+
 
 view : Model -> Html Msg
 view model =
