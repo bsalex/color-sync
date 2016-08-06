@@ -13,6 +13,7 @@ import Routing exposing (Route)
 type alias AppModel =
     { colorSyncModel : ColorSync.Model
     , sessionId : String
+    , host : String
     }
 
 
@@ -20,16 +21,32 @@ initialModel : AppModel
 initialModel =
     { colorSyncModel = ColorSync.initialModel
     , sessionId = ""
+    , host = ""
     }
 
 
 getSessionIdFromRoute : Route -> String
 getSessionIdFromRoute route =
     case route of
-        Routing.SessionRoute sessionId ->
+        Routing.SessionRoute host sessionId ->
             sessionId
 
-        Routing.MainRoute ->
+        Routing.MainRoute host ->
+            ""
+
+        Routing.NotFound ->
+            ""
+
+getHostFromRoute : Route -> String
+getHostFromRoute route =
+    case route of
+        Routing.SessionRoute host sessionId ->
+            host
+
+        Routing.MainRoute host ->
+            host
+
+        Routing.NotFound ->
             ""
 
 
@@ -38,8 +55,10 @@ init result =
     let
         currentSessionId =
             getSessionIdFromRoute (Routing.routeFromResult (Debug.log "routed session" result))
+        currentHost =
+            getHostFromRoute (Routing.routeFromResult (Debug.log "routed session" result))
     in
-        ( initialModel
+        ( { initialModel | host = Debug.log "currentHost" currentHost }
         , if currentSessionId == "" then
             Random.generate GenerateSessionId (Random.int 1 10000)
           else
@@ -53,11 +72,13 @@ type Msg
     | GenerateSessionId Int
 
 
-getSessionQrCodeUrl : String -> String
-getSessionQrCodeUrl sessionId =
+getSessionQrCodeUrl : String -> String -> String
+getSessionQrCodeUrl host sessionId =
     (String.concat
         [ "http://chart.apis.google.com/chart?chs=200x200&cht=qr&chld=|1&chl="
-        , "https%3A%2F%2Fdisplay-sync.herokuapp.com%2F"
+        , "https%3A%2F%2F"
+        , host
+        , "%2F"
         , sessionId
         ]
     )
@@ -67,7 +88,7 @@ view : AppModel -> Html Msg
 view model =
     div []
         [ Html.App.map ColorSyncMsg (ColorSync.view model.colorSyncModel)
-        , img [ src (getSessionQrCodeUrl model.sessionId) ] []
+        , img [ src (getSessionQrCodeUrl model.host model.sessionId) ] []
         ]
 
 

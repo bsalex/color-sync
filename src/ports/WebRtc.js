@@ -13,32 +13,41 @@ function generateUUID() {
 
 function startHost(hostDataKey) {
     var channels = [];
+    console.log('startHost');
 
     database.ref().on('child_added', function(snapshot) {
+        console.log('host 1');
         if (snapshot.key === hostDataKey.toString()) {
+            console.log('host 2');
             database.ref(hostDataKey).on('child_added', function(snapshot) {
                 var clientId = snapshot.key;
+                var iceServers = snapshot.val().iceServers;
                 console.log(clientId);
+                console.log('host', iceServers);
 
-                connectHost(hostDataKey, clientId, database).then(function (channel) {
+                connectHost(hostDataKey, iceServers, clientId, database).then(function(channel) {
                     channels.push(channel);
                 });
             });
         }
     });
 
-    return function (color) {
-        channels.forEach(function (channel) {
+    return function(color) {
+        channels.forEach(function(channel) {
             channel.send(color);
         });
     }
 }
 
-function connectHost(hostDataKey, clientId, database) {
+function connectHost(hostDataKey, iceServers, clientId, database) {
     var clientDataKey = hostDataKey + '/' + clientId;
 
-    return new Promise(function (resolve) {
-        var pc = new webkitRTCPeerConnection(connectionOptions);
+    return new Promise(function(resolve) {
+        var pc = new webkitRTCPeerConnection({
+            iceServers: iceServers
+        });
+
+        console.log('here');
 
         pc.ondatachannel = function(event) {
             console.log('on data channel');
@@ -102,18 +111,21 @@ function connectHost(hostDataKey, clientId, database) {
 
 global.startHost = startHost;
 
-function startClient(hostDataKey, clientId, onMessage) {
+function startClient(hostDataKey, iceServers, clientId, onMessage) {
     var clientDataKey = hostDataKey + '/' + clientId;
 
     database.ref(clientDataKey).set({
-        key: clientId
+        key: clientId,
+        iceServers: iceServers
     });
 
     database.ref(clientDataKey + '/offer').on('value', function(snapshot) {
         var offer = snapshot.val();
 
         if (offer) {
-            var pc = new webkitRTCPeerConnection(connectionOptions);
+            var pc = new webkitRTCPeerConnection({
+                iceServers: iceServers
+            });
 
             pc.ondatachannel = function(event) {
                 console.log('on data channel');
@@ -161,13 +173,26 @@ global.startClient = startClient;
 
 module.exports = {
     init: function(app) {
+
         app.ports.sessionId.subscribe(function(session) {
+            console.log(session);
             if (session[1]) {
                 app.ports.changedColor.subscribe(startHost(session[0]));
             } else {
-                var clientId = generateUUID();
-                console.log('Client id: ' + clientId);
-                startClient(session[0], clientId, app.ports.changeColor.send);
+
+                var xhr = new XMLHttpRequest();
+
+                xhr.addEventListener("readystatechange", function() {
+                    if (this.readyState === 4) {
+                        var iceServers = JSON.parse(this.responseText).d.iceServers;
+                        var clientId = generateUUID();
+                        console.log('Client id: ' + clientId);
+                        startClient(session[0], iceServers, clientId, app.ports.changeColor.send);
+                    }
+                });
+
+                xhr.open("GET", "https://service.xirsys.com/ice?ident=bsalex&secret=280b50ac-5b50-11e6-8b91-4bca927191f6&domain=display-sync.local.com&application=default&room=default&secure=1");
+                xhr.send();
             }
         });
     }

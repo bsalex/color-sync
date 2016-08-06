@@ -6,14 +6,17 @@ import UrlParser exposing (..)
 
 
 type Route
-    = MainRoute
-    | SessionRoute String
+    = MainRoute String
+    | SessionRoute String String
+    | NotFound
 
 
 matchers : Parser (Route -> a) a
 matchers =
     oneOf
-        [ format SessionRoute (string) ]
+        [ format MainRoute (string </> (s ""))
+        , format SessionRoute (string </> string)
+        ]
 
 
 hashParser : Navigation.Location -> Result String Route
@@ -22,10 +25,12 @@ hashParser location =
         |> Debug.log "hash"
         |> String.split "/"
         |> List.reverse
-        |> List.head
-        |> Maybe.withDefault ""
-        |> Debug.log "session from url"
+        |> List.take 2
+        |> List.reverse
+        |> String.join "/"
+        |> Debug.log "to parse"
         |> parse identity matchers
+        |> Debug.log "after parse"
 
 
 parser : Navigation.Parser (Result String Route)
@@ -40,4 +45,4 @@ routeFromResult result =
             route
 
         Err string ->
-            MainRoute
+            NotFound
