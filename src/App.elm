@@ -1,9 +1,9 @@
 port module App exposing (..)
 
 import ColorSync
-import Html exposing (Html, div, img)
+import Html exposing (Html, div, img, a, text, br)
 import Html.App
-import Html.Attributes exposing (src)
+import Html.Attributes exposing (src, href, target)
 import Random
 import String
 import Navigation
@@ -83,12 +83,26 @@ getSessionQrCodeUrl host sessionId =
         ]
     )
 
+getSessionConnectUrl : String -> String -> String
+getSessionConnectUrl host sessionId =
+    (String.concat
+        [ "http://"
+        , host
+        , "/"
+        , sessionId
+        ]
+    )
+
 
 view : AppModel -> Html Msg
 view model =
     div []
         [ Html.App.map ColorSyncMsg (ColorSync.view model.colorSyncModel)
         , img [ src (getSessionQrCodeUrl model.host model.sessionId) ] []
+        , br [] []
+        , a [ href (getSessionConnectUrl model.host model.sessionId), target "_blank" ]
+            [ text (getSessionConnectUrl model.host model.sessionId)
+            ]
         ]
 
 
