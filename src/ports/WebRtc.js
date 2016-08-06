@@ -3,27 +3,18 @@ var configs = require('../configs');
 firebase.initializeApp(configs.firebaseConfig);
 var database = firebase.database();
 
-var connectionOptions = {
-    iceServers: configs.iceServers
-};
-
 function generateUUID() {
     return Math.round(Math.random() * 10000);
 }
 
 function startHost(hostDataKey) {
     var channels = [];
-    console.log('startHost');
 
     database.ref().on('child_added', function(snapshot) {
-        console.log('host 1');
         if (snapshot.key === hostDataKey.toString()) {
-            console.log('host 2');
             database.ref(hostDataKey).on('child_added', function(snapshot) {
                 var clientId = snapshot.key;
                 var iceServers = snapshot.val().iceServers;
-                console.log(clientId);
-                console.log('host', iceServers);
 
                 connectHost(hostDataKey, iceServers, clientId, database).then(function(channel) {
                     channels.push(channel);
@@ -47,20 +38,13 @@ function connectHost(hostDataKey, iceServers, clientId, database) {
             iceServers: iceServers
         });
 
-        console.log('here');
-
         pc.ondatachannel = function(event) {
-            console.log('on data channel');
             receiveChannel = event.channel;
-            receiveChannel.onmessage = function(event) {
-                console.log(event.data);
-            };
+            receiveChannel.onmessage = function(event) {};
         };
 
         pc.onicecandidate = function(event) {
             if (event.candidate) {
-                console.log('onicecandidate');
-
                 var newIceCandidate = {};
                 newIceCandidate[generateUUID()] = event.candidate;
 
@@ -71,7 +55,6 @@ function connectHost(hostDataKey, iceServers, clientId, database) {
         var sendChannel = pc.createDataChannel('sendDataChannel');
 
         sendChannel.onopen = function(event) {
-            console.log('channel opened');
             resolve(sendChannel);
         }
 
@@ -92,13 +75,9 @@ function connectHost(hostDataKey, iceServers, clientId, database) {
             var answer = snapshot.val();
 
             if (answer) {
-                console.log('got answer', answer);
                 pc.setRemoteDescription(answer).then(function() {
-                    console.log('answer received');
-                }).then(function() {
                     database.ref(clientDataKey + '/clientIceCandidates').on('child_added', function(snapshot) {
                         var candidate = snapshot.val();
-                        console.log('Host candidate added ', candidate);
                         if (candidate) {
                             pc.addIceCandidate(candidate);
                         }
@@ -128,17 +107,14 @@ function startClient(hostDataKey, iceServers, clientId, onMessage) {
             });
 
             pc.ondatachannel = function(event) {
-                console.log('on data channel');
                 receiveChannel = event.channel;
                 receiveChannel.onmessage = function(event) {
-                    console.log(event.data);
                     onMessage(event.data);
                 };
             };
 
             pc.onicecandidate = function(event) {
                 if (event.candidate) {
-                    console.log('onicecandidate');
                     var newIceCandidate = {};
                     newIceCandidate[generateUUID()] = event.candidate;
 
@@ -158,7 +134,6 @@ function startClient(hostDataKey, iceServers, clientId, onMessage) {
                 .then(function() {
                     database.ref(clientDataKey + '/hostIceCandidates').on('child_added', function(snapshot) {
                         var candidate = snapshot.val();
-                        console.log('Client candidate added ', candidate, snapshot.val(), snapshot.key);
 
                         if (candidate) {
                             pc.addIceCandidate(candidate);
@@ -175,7 +150,6 @@ module.exports = {
     init: function(app) {
 
         app.ports.sessionId.subscribe(function(session) {
-            console.log(session);
             if (session[1]) {
                 app.ports.changedColor.subscribe(startHost(session[0]));
             } else {
@@ -186,12 +160,11 @@ module.exports = {
                     if (this.readyState === 4) {
                         var iceServers = JSON.parse(this.responseText).d.iceServers;
                         var clientId = generateUUID();
-                        console.log('Client id: ' + clientId);
                         startClient(session[0], iceServers, clientId, app.ports.changeColor.send);
                     }
                 });
 
-                xhr.open("GET", "https://service.xirsys.com/ice?ident=bsalex&secret=280b50ac-5b50-11e6-8b91-4bca927191f6&domain=display-sync.local.com&application=default&room=default&secure=1");
+                xhr.open("GET", "https://service.xirsys.com/ice?ident=bsalex&secret=280b50ac-5b50-11e6-8b91-4bca927191f6&domain=display-sync.heroku.com&application=default&room=default&secure=1");
                 xhr.send();
             }
         });

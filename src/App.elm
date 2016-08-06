@@ -55,12 +55,12 @@ init : Result String Route -> ( AppModel, Cmd Msg )
 init result =
     let
         currentSessionId =
-            getSessionIdFromRoute (Routing.routeFromResult (Debug.log "routed session" result))
+            getSessionIdFromRoute (Routing.routeFromResult result)
 
         currentHost =
-            getHostFromRoute (Routing.routeFromResult (Debug.log "routed session" result))
+            getHostFromRoute (Routing.routeFromResult result)
     in
-        ( { initialModel | host = Debug.log "currentHost" currentHost }
+        ( { initialModel | host = currentHost }
         , if currentSessionId == "" then
             Random.generate GenerateSessionId (Random.int 1 10000)
           else
@@ -113,7 +113,7 @@ update : Msg -> AppModel -> ( AppModel, Cmd Msg )
 update message model =
     case message of
         GenerateSessionId newSessionId ->
-            ( { model | sessionId = Debug.log "session" (toString newSessionId) }, sessionId ( (toString newSessionId), True ) )
+            ( { model | sessionId = toString newSessionId }, sessionId ( (toString newSessionId), True ) )
 
         ChangeColorFromPort newColor ->
             update (ColorSyncMsg (ColorSync.ChangeColor newColor)) model
