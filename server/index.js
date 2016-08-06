@@ -6,6 +6,14 @@ console.log(__dirname + '/../dist');
 app.set('port', (process.env.PORT || 5000));
 app.use(express.static(__dirname + '/../dist'));
 
+app.get(function(req, res, next) {
+    if (req.accepts('html')) {
+        res.sendFile(__dirname + '/../dist/index.html');
+    } else {
+        next();
+    }
+});
+
 app.listen(app.get('port'), function() {
-  console.log('Node app is running on port', app.get('port'));
+    console.log('Node app is running on port', app.get('port'));
 });
