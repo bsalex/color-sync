@@ -14,6 +14,7 @@ type alias AppModel =
     { colorSyncModel : ColorSync.Model
     , sessionId : String
     , host : String
+    , route : Routing.Route
     }
 
 
@@ -22,6 +23,7 @@ initialModel =
     { colorSyncModel = ColorSync.initialModel
     , sessionId = ""
     , host = ""
+    , route = Routing.NotFound
     }
 
 
@@ -54,13 +56,15 @@ getHostFromRoute route =
 init : Result String Route -> ( AppModel, Cmd Msg )
 init result =
     let
-        currentSessionId =
-            getSessionIdFromRoute (Routing.routeFromResult result)
+        route = Routing.routeFromResult result
 
-        currentHost =
-            getHostFromRoute (Routing.routeFromResult result)
+        currentSessionId =
+            getSessionIdFromRoute route
+
+        host =
+            getHostFromRoute route
     in
-        ( { initialModel | host = currentHost }
+        ( { initialModel | host = host, route = route }
         , if currentSessionId == "" then
             Random.generate GenerateSessionId (Random.int 1 10000)
           else
@@ -99,14 +103,27 @@ getSessionConnectUrl host sessionId =
 
 view : AppModel -> Html Msg
 view model =
-    div []
-        [ Html.App.map ColorSyncMsg (ColorSync.view model.colorSyncModel)
-        , img [ src (getSessionQrCodeUrl model.host model.sessionId) ] []
-        , br [] []
-        , a [ href (getSessionConnectUrl model.host model.sessionId), target "_blank" ]
-            [ text (getSessionConnectUrl model.host model.sessionId)
-            ]
-        ]
+    case model.route of
+        Routing.SessionRoute host sessionId ->
+            div []
+                [ Html.App.map ColorSyncMsg (ColorSync.view model.colorSyncModel)
+                ]
+
+        Routing.MainRoute host ->
+            div []
+                [ Html.App.map ColorSyncMsg (ColorSync.view model.colorSyncModel)
+                , img [ src (getSessionQrCodeUrl model.host model.sessionId) ] []
+                , br [] []
+                , a [ href (getSessionConnectUrl model.host model.sessionId), target "_blank" ]
+                    [ text (getSessionConnectUrl model.host model.sessionId)
+                    ]
+                ]
+
+        Routing.NotFound ->
+            div []
+                [ text "Route not found"
+                ]
+
 
 
 update : Msg -> AppModel -> ( AppModel, Cmd Msg )
