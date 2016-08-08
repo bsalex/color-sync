@@ -30,33 +30,31 @@ initialModel =
 getSessionIdFromRoute : Route -> String
 getSessionIdFromRoute route =
     case route of
-        Routing.SessionRoute host sessionId ->
+        Routing.SessionRoute _ sessionId ->
             sessionId
 
-        Routing.MainRoute host ->
-            ""
-
-        Routing.NotFound ->
+        _ ->
             ""
 
 
 getHostFromRoute : Route -> String
 getHostFromRoute route =
     case route of
-        Routing.SessionRoute host sessionId ->
+        Routing.SessionRoute host _ ->
             host
 
         Routing.MainRoute host ->
             host
 
-        Routing.NotFound ->
+        _ ->
             ""
 
 
 init : Result String Route -> ( AppModel, Cmd Msg )
 init result =
     let
-        route = Routing.routeFromResult result
+        route =
+            Routing.routeFromResult result
 
         currentSessionId =
             getSessionIdFromRoute route
@@ -119,11 +117,10 @@ view model =
                     ]
                 ]
 
-        Routing.NotFound ->
+        _ ->
             div []
                 [ text "Route not found"
                 ]
-
 
 
 update : Msg -> AppModel -> ( AppModel, Cmd Msg )
