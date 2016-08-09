@@ -3,6 +3,7 @@ module ColorSync exposing (..)
 import Html exposing (Html, div)
 import Html.Attributes exposing (class, style)
 import Task
+import ColorDisplay
 
 
 type alias Model =
@@ -35,7 +36,7 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-    div [ class "color-sync", style [ ( "background-color", model ) ] ]
-        [ div [ class "color-selector" ]
-            []
+    div [ class "color-sync" ]
+        [ div [ class "color-selector" ] []
+        , ColorDisplay.view model
         ]
