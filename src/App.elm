@@ -1,7 +1,7 @@
 port module App exposing (..)
 
 import ColorSync
---import IceServersProvider
+import IceServersProvider
 import Html exposing (Html, div, img, a, text, br)
 import Html.App
 import Html.Attributes exposing (src, href, target)
@@ -64,15 +64,18 @@ init result =
             getHostFromRoute route
     in
         ( { initialModel | host = host, route = route }
-        , if currentSessionId == "" then
-            Random.generate GenerateSessionId (Random.int 1 10000)
-          else
-            sessionId ( currentSessionId, False )
+        , Cmd.batch [ Cmd.map IceServersProviderMsg IceServersProvider.getIceServers
+                    , if currentSessionId == "" then
+                        Random.generate GenerateSessionId (Random.int 1 10000)
+                      else
+                        sessionId ( currentSessionId, False )
+                    ]
         )
 
 
 type Msg
     = ColorSyncMsg ColorSync.Msg
+    | IceServersProviderMsg IceServersProvider.Msg
     | ChangeColorFromPort ColorSync.Model
     | GenerateSessionId Int
 
@@ -145,6 +148,15 @@ update message model =
                     in
                         ( { model | colorSyncModel = updatedColorSyncModel }, Cmd.map ColorSyncMsg colorSyncCmd )
 
+        IceServersProviderMsg subMsg ->
+            case subMsg of
+                IceServersProvider.FetchSucceed iceServers ->
+                    ( model, iceServersPort iceServers )
+
+                _ ->
+                    ( model, Cmd.none )
+
+
 
 urlUpdate : Result String Route -> AppModel -> ( AppModel, Cmd Msg )
 urlUpdate result model =
@@ -162,6 +174,9 @@ port changedColor : ColorSync.Model -> Cmd msg
 
 
 port sessionId : ( String, Bool ) -> Cmd msg
+
+
+port iceServersPort : ( List IceServersProvider.IceServer ) -> Cmd msg
 
 
 subscriptions : AppModel -> Sub Msg

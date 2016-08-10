@@ -148,24 +148,27 @@ global.startClient = startClient;
 
 module.exports = {
     init: function(app) {
+        var iceServersPromise = new Promise(function(resolve) {
+            app.ports.iceServersPort.subscribe(function(iceServers) {
+                resolve(iceServers);
+            });
+        });
 
-        app.ports.sessionId.subscribe(function(session) {
+        var sessionIdPromise = new Promise(function(resolve) {
+            app.ports.sessionId.subscribe(function(session) {
+                resolve(session);
+            });
+        });
+
+        Promise.all([iceServersPromise, sessionIdPromise]).then(function(values) {
+            var iceServers = values[0];
+            var session = values[1];
+
             if (session[1]) {
                 app.ports.changedColor.subscribe(startHost(session[0]));
             } else {
-
-                var xhr = new XMLHttpRequest();
-
-                xhr.addEventListener("readystatechange", function() {
-                    if (this.readyState === 4) {
-                        var iceServers = JSON.parse(this.responseText).d.iceServers;
-                        var clientId = generateUUID();
-                        startClient(session[0], iceServers, clientId, app.ports.changeColor.send);
-                    }
-                });
-
-                xhr.open("GET", "https://service.xirsys.com/ice?ident=bsalex&secret=280b50ac-5b50-11e6-8b91-4bca927191f6&domain=display-sync.heroku.com&application=default&room=default&secure=1");
-                xhr.send();
+                var clientId = generateUUID();
+                startClient(session[0], iceServers, clientId, app.ports.changeColor.send);
             }
         });
     }
