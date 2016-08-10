@@ -1,6 +1,7 @@
 port module App exposing (..)
 
 import ColorSync
+import ColorDisplay
 import IceServersProvider
 import Html exposing (Html, div, img, a, text, br)
 import Html.App
@@ -108,7 +109,7 @@ view model =
     case model.route of
         Routing.SessionRoute host sessionId ->
             div []
-                [ Html.App.map ColorSyncMsg (ColorSync.view model.colorSyncModel)
+                [ Html.App.map ColorSyncMsg (ColorDisplay.view model.colorSyncModel)
                 ]
 
         Routing.MainRoute host ->
