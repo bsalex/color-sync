@@ -14,16 +14,22 @@ import Routing exposing (Route)
 
 type alias AppModel =
     { colorSyncModel : ColorSync.Model
-    , sessionId : String
+    , session : Session
     , host : String
     , route : Routing.Route
+    }
+
+type alias Session =
+    { isHost : Bool
+    , sessionId : String
+    , domain : String
     }
 
 
 initialModel : AppModel
 initialModel =
     { colorSyncModel = ColorSync.initialModel
-    , sessionId = ""
+    , session = Session False ""
     , host = ""
     , route = Routing.NotFound
     }
@@ -58,18 +64,15 @@ init result =
         route =
             Routing.routeFromResult result
 
-        currentSessionId =
-            getSessionIdFromRoute route
-
-        host =
-            getHostFromRoute route
+        currentSession =
+            Session True (getSessionIdFromRoute route) (getHostFromRoute route)
     in
-        ( { initialModel | host = host, route = route }
+        ( { initialModel | currentSession = currentSession }
         , Cmd.batch [ Cmd.map IceServersProviderMsg IceServersProvider.getIceServers
-                    , if currentSessionId == "" then
+                    , if currentSession.isHost then
                         Random.generate GenerateSessionId (Random.int 1 10000)
                       else
-                        sessionId ( currentSessionId, False )
+                        sessionId ( currentSession.sessionId, False )
                     ]
         )
 
