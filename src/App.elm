@@ -29,20 +29,20 @@ type alias Session =
 initialModel : AppModel
 initialModel =
     { colorSyncModel = ColorSync.initialModel
-    , session = Session False ""
+    , session = Session False "" ""
     , host = ""
     , route = Routing.NotFound
     }
 
 
-getSessionIdFromRoute : Route -> String
+getSessionIdFromRoute : Route -> Maybe String
 getSessionIdFromRoute route =
     case route of
         Routing.SessionRoute _ sessionId ->
-            sessionId
+            Just sessionId
 
         _ ->
-            ""
+            Nothing
 
 
 getHostFromRoute : Route -> String
@@ -64,15 +64,28 @@ init result =
         route =
             Routing.routeFromResult result
 
-        currentSession =
-            Session True (getSessionIdFromRoute route) (getHostFromRoute route)
+        routeSessionId = getSessionIdFromRoute route
+
+        host = getHostFromRoute route
+
+        domain = host
+                    |> String.split ":"
+                    |> List.head
+                    |> Maybe.withDefault ""
+
+        currentSession = case routeSessionId of
+            Just sessionId ->
+                Session False sessionId host
+
+            Nothing ->
+                Session True "" host
     in
-        ( { initialModel | currentSession = currentSession }
-        , Cmd.batch [ Cmd.map IceServersProviderMsg IceServersProvider.getIceServers
+        ( { initialModel | session = currentSession, route = route }
+        , Cmd.batch [ Cmd.map IceServersProviderMsg ( IceServersProvider.getIceServers domain )
                     , if currentSession.isHost then
                         Random.generate GenerateSessionId (Random.int 1 10000)
                       else
-                        sessionId ( currentSession.sessionId, False )
+                        sessionPort currentSession
                     ]
         )
 
@@ -109,33 +122,31 @@ getSessionConnectUrl host sessionId =
 
 view : AppModel -> Html Msg
 view model =
-    case model.route of
-        Routing.SessionRoute host sessionId ->
+    case model.session.isHost of
+        False ->
             div []
                 [ Html.App.map ColorSyncMsg (ColorDisplay.view model.colorSyncModel)
                 ]
 
-        Routing.MainRoute host ->
+        True ->
             div []
                 [ Html.App.map ColorSyncMsg (ColorSync.view model.colorSyncModel)
-                , img [ src (getSessionQrCodeUrl model.host model.sessionId) ] []
+                , img [ src (getSessionQrCodeUrl model.session.domain model.session.sessionId) ] []
                 , br [] []
-                , a [ href (getSessionConnectUrl model.host model.sessionId), target "_blank" ]
-                    [ text (getSessionConnectUrl model.host model.sessionId)
+                , a [ href (getSessionConnectUrl model.session.domain model.session.sessionId), target "_blank" ]
+                    [ text (getSessionConnectUrl model.session.domain model.session.sessionId)
                     ]
                 ]
-
-        _ ->
-            div []
-                [ text "Route not found"
-                ]
-
 
 update : Msg -> AppModel -> ( AppModel, Cmd Msg )
 update message model =
     case message of
         GenerateSessionId newSessionId ->
-            ( { model | sessionId = toString newSessionId }, sessionId ( (toString newSessionId), True ) )
+            let
+                previousSession = model.session
+                newSession = { previousSession | sessionId = toString newSessionId }
+            in
+                ( { model |  session = newSession }, sessionPort newSession )
 
         ChangeColorFromPort newColor ->
             update (ColorSyncMsg (ColorSync.ChangeColor newColor)) model
@@ -177,7 +188,7 @@ port changeColor : (ColorSync.Model -> msg) -> Sub msg
 port changedColor : ColorSync.Model -> Cmd msg
 
 
-port sessionId : ( String, Bool ) -> Cmd msg
+port sessionPort : Session -> Cmd msg
 
 
 port iceServersPort : ( List IceServersProvider.IceServer ) -> Cmd msg

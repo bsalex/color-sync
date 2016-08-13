@@ -154,21 +154,21 @@ module.exports = {
             });
         });
 
-        var sessionIdPromise = new Promise(function(resolve) {
-            app.ports.sessionId.subscribe(function(session) {
+        var sessionPortPromise = new Promise(function(resolve) {
+            app.ports.sessionPort.subscribe(function(session) {
                 resolve(session);
             });
         });
 
-        Promise.all([iceServersPromise, sessionIdPromise]).then(function(values) {
+        Promise.all([iceServersPromise, sessionPortPromise]).then(function(values) {
             var iceServers = values[0];
             var session = values[1];
 
-            if (session[1]) {
-                app.ports.changedColor.subscribe(startHost(session[0]));
+            if (session.isHost) {
+                app.ports.changedColor.subscribe(startHost(session.sessionId));
             } else {
                 var clientId = generateUUID();
-                startClient(session[0], iceServers, clientId, app.ports.changeColor.send);
+                startClient(session.sessionId, iceServers, clientId, app.ports.changeColor.send);
             }
         });
     }
