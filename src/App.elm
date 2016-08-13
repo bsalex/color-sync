@@ -99,25 +99,13 @@ type Msg
 
 getSessionQrCodeUrl : String -> String -> String
 getSessionQrCodeUrl host sessionId =
-    (String.concat
-        [ "http://chart.apis.google.com/chart?chs=200x200&cht=qr&chld=|1&chl="
-        , "https%3A%2F%2F"
-        , host
-        , "%2F"
-        , sessionId
-        ]
-    )
+    "http://chart.apis.google.com/chart?chs=200x200&cht=qr&chld=|1&chl=" ++
+        "https%3A%2F%2F" ++ host ++ "%2F" ++ sessionId
 
 
 getSessionConnectUrl : String -> String -> String
 getSessionConnectUrl host sessionId =
-    (String.concat
-        [ "http://"
-        , host
-        , "/"
-        , sessionId
-        ]
-    )
+    "http://" ++ host ++ "/" ++ sessionId
 
 
 view : AppModel -> Html Msg
