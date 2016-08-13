@@ -27,7 +27,6 @@ hashParser location =
         |> List.take 2
         |> List.reverse
         |> String.join "/"
-        |> Debug.log "ddd"
         |> parse identity matchers
 
 parser : Navigation.Parser (Result String Route)
@@ -38,7 +37,7 @@ parser =
 routeFromResult : Result String Route -> Route
 
 routeFromResult result =
-    case Debug.log "eee" result of
+    case result of
         Ok route ->
             route
 
