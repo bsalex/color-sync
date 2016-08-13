@@ -19,6 +19,7 @@ type alias AppModel =
     , route : Routing.Route
     }
 
+
 type alias Session =
     { isHost : Bool
     , sessionId : String
@@ -64,29 +65,37 @@ init result =
         route =
             Routing.routeFromResult result
 
-        routeSessionId = getSessionIdFromRoute route
+        routeSessionId =
+            getSessionIdFromRoute route
 
-        host = getHostFromRoute route
+        host =
+            getHostFromRoute route
 
-        domain = host
-                    |> String.split ":"
-                    |> List.head
-                    |> Maybe.withDefault ""
+        domain =
+            host
+                |> String.split ":"
+                |> List.head
+                |> Maybe.withDefault ""
 
-        currentSession = case routeSessionId of
-            Just sessionId ->
-                Session False sessionId host
+        currentSession =
+            case routeSessionId of
+                Just sessionId ->
+                    Session False sessionId host
 
-            Nothing ->
-                Session True "" host
+                Nothing ->
+                    Session True "" host
+
+        sessionIdCmd =
+            if currentSession.isHost then
+                Random.generate GenerateSessionId (Random.int 1 10000)
+            else
+                sessionPort currentSession
     in
         ( { initialModel | session = currentSession, route = route }
-        , Cmd.batch [ Cmd.map IceServersProviderMsg ( IceServersProvider.getIceServers domain )
-                    , if currentSession.isHost then
-                        Random.generate GenerateSessionId (Random.int 1 10000)
-                      else
-                        sessionPort currentSession
-                    ]
+        , Cmd.batch
+            [ Cmd.map IceServersProviderMsg (IceServersProvider.getIceServers domain)
+            , sessionIdCmd
+            ]
         )
 
 
@@ -99,8 +108,11 @@ type Msg
 
 getSessionQrCodeUrl : String -> String -> String
 getSessionQrCodeUrl host sessionId =
-    "http://chart.apis.google.com/chart?chs=200x200&cht=qr&chld=|1&chl=" ++
-        "https%3A%2F%2F" ++ host ++ "%2F" ++ sessionId
+    "http://chart.apis.google.com/chart?chs=200x200&cht=qr&chld=|1&chl="
+        ++ "https%3A%2F%2F"
+        ++ host
+        ++ "%2F"
+        ++ sessionId
 
 
 getSessionConnectUrl : String -> String -> String
@@ -126,15 +138,19 @@ view model =
                     ]
                 ]
 
+
 update : Msg -> AppModel -> ( AppModel, Cmd Msg )
 update message model =
     case message of
         GenerateSessionId newSessionId ->
             let
-                previousSession = model.session
-                newSession = { previousSession | sessionId = toString newSessionId }
+                previousSession =
+                    model.session
+
+                newSession =
+                    { previousSession | sessionId = toString newSessionId }
             in
-                ( { model |  session = newSession }, sessionPort newSession )
+                ( { model | session = newSession }, sessionPort newSession )
 
         ChangeColorFromPort newColor ->
             update (ColorSyncMsg (ColorSync.ChangeColor newColor)) model
@@ -160,7 +176,6 @@ update message model =
                     ( model, Cmd.none )
 
 
-
 urlUpdate : Result String Route -> AppModel -> ( AppModel, Cmd Msg )
 urlUpdate result model =
     let
@@ -179,7 +194,7 @@ port changedColor : ColorSync.Model -> Cmd msg
 port sessionPort : Session -> Cmd msg
 
 
-port iceServersPort : ( List IceServersProvider.IceServer ) -> Cmd msg
+port iceServersPort : List IceServersProvider.IceServer -> Cmd msg
 
 
 subscriptions : AppModel -> Sub Msg
