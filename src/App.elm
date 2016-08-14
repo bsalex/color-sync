@@ -1,6 +1,6 @@
 port module App exposing (..)
 
-import ColorSync
+import ColorPicker
 import ColorDisplay
 import IceServersProvider
 import Html exposing (Html, div, img, a, text, br)
@@ -13,7 +13,7 @@ import Routing exposing (Route)
 
 
 type alias AppModel =
-    { colorSyncModel : ColorSync.Model
+    { colorPickerModel : ColorPicker.Model
     , session : Session
     , host : String
     , route : Routing.Route
@@ -29,7 +29,7 @@ type alias Session =
 
 initialModel : AppModel
 initialModel =
-    { colorSyncModel = ColorSync.initialModel
+    { colorPickerModel = ColorPicker.initialModel
     , session = Session False "" ""
     , host = ""
     , route = Routing.NotFound
@@ -100,9 +100,9 @@ init result =
 
 
 type Msg
-    = ColorSyncMsg ColorSync.Msg
+    = ColorPickerMsg ColorPicker.Msg
     | IceServersProviderMsg IceServersProvider.Msg
-    | ChangeColorFromPort ColorSync.Model
+    | ChangeColorFromPort ColorPicker.Model
     | GenerateSessionId Int
 
 
@@ -125,12 +125,12 @@ view model =
     case model.session.isHost of
         False ->
             div []
-                [ Html.App.map ColorSyncMsg (ColorDisplay.view model.colorSyncModel)
+                [ Html.App.map ColorPickerMsg (ColorDisplay.view model.colorPickerModel)
                 ]
 
         True ->
             div []
-                [ Html.App.map ColorSyncMsg (ColorSync.view model.colorSyncModel)
+                [ Html.App.map ColorPickerMsg (ColorPicker.view model.colorPickerModel)
                 , img [ src (getSessionQrCodeUrl model.session.domain model.session.sessionId) ] []
                 , br [] []
                 , a [ href (getSessionConnectUrl model.session.domain model.session.sessionId), target "_blank" ]
@@ -153,19 +153,19 @@ update message model =
                 ( { model | session = newSession }, sessionPort newSession )
 
         ChangeColorFromPort newColor ->
-            update (ColorSyncMsg (ColorSync.ChangeColor newColor)) model
+            update (ColorPickerMsg (ColorPicker.ChangeColor newColor)) model
 
-        ColorSyncMsg subMsg ->
+        ColorPickerMsg subMsg ->
             case subMsg of
-                ColorSync.ChangedColor newColor ->
+                ColorPicker.ChangedColor newColor ->
                     ( model, changedColor newColor )
 
                 _ ->
                     let
-                        ( updatedColorSyncModel, colorSyncCmd ) =
-                            ColorSync.update subMsg model.colorSyncModel
+                        ( updatedColorPickerModel, colorPickerCmd ) =
+                            ColorPicker.update subMsg model.colorPickerModel
                     in
-                        ( { model | colorSyncModel = updatedColorSyncModel }, Cmd.map ColorSyncMsg colorSyncCmd )
+                        ( { model | colorPickerModel = updatedColorPickerModel }, Cmd.map ColorPickerMsg colorPickerCmd )
 
         IceServersProviderMsg subMsg ->
             case subMsg of
@@ -185,10 +185,10 @@ urlUpdate result model =
         ( model, Cmd.none )
 
 
-port changeColor : (ColorSync.Model -> msg) -> Sub msg
+port changeColor : (ColorPicker.Model -> msg) -> Sub msg
 
 
-port changedColor : ColorSync.Model -> Cmd msg
+port changedColor : ColorPicker.Model -> Cmd msg
 
 
 port sessionPort : Session -> Cmd msg

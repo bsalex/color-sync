@@ -1,4 +1,4 @@
-module ColorSync exposing (..)
+module ColorPicker exposing (..)
 
 import Html exposing (Html, div)
 import Html.Attributes exposing (class, style)
@@ -37,6 +37,6 @@ update msg model =
 view : Model -> Html Msg
 view model =
     div [ class "color-sync" ]
-        [ div [ class "color-selector" ] []
+        [ div [ class "color-picker" ] []
         , ColorDisplay.view model
         ]
